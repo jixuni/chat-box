@@ -1,8 +1,8 @@
 const bcrypt = require("bcryptjs");
 const { UserInputError, AuthenticationError } = require("apollo-server");
-
+const jwt = require("jsonwebtoken");
 const { User } = require("../models");
-
+const { JWT_SECRET } = require("../config/env.json");
 module.exports = {
   Query: {
     getUsers: async () => {
@@ -42,7 +42,20 @@ module.exports = {
           errors.password = "password is incorrect";
           throw new AuthenticationError("password is incorrect", { errors });
         }
-        return user;
+
+        const token = jwt.sign(
+          {
+            username,
+          },
+          JWT_SECRET,
+          { expiresIn: 60 * 60 }
+        );
+        // if returning more than just user need to call toJSON method, (GraphQL)it is not implied
+        return {
+          ...user.toJSON(),
+          createdAt: user.createdAt.toISOString(),
+          token,
+        };
       } catch (err) {
         console.log(err);
         throw err;
